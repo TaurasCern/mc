@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: minecraft-pv
+  namespace: mc-server
+spec:
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /data/minecraft-world
+  claimRef:
+    namespace: mc-server
+    name: minecraft-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minecraft-pvc
+  namespace: mc-server
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-service
+  namespace: mc-server
+spec:
+  selector:
+    app: minecraft
+  ports:
+  - name: minecraft-port
+    protocol: TCP
+    port: 27015
+    targetPort: 27015
+  - name: voicechat-tcp
+    protocol: TCP
+    port: 24454
+    targetPort: 24454
+  - name: voicechat-udp
+    protocol: UDP
+    port: 24454
+    targetPort: 24454
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-server
+  namespace: mc-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft
+  template:
+    metadata:
+      labels:
+        app: minecraft
+    spec:
+      containers:
+      - name: minecraft-server
+        image: 192.168.1.142:5000/mc-server:latest
+        ports:
+        - containerPort: 27015
+        volumeMounts:
+        - name: minecraft-world
+          mountPath: /minecraft/world
+        resources:
+          limits:
+            memory: "8Gi"
+            cpu: "2"
+          requests:
+            memory: "6Gi"
+            cpu: "2"
+      volumes:
+      - name: minecraft-world
+        persistentVolumeClaim:
+          claimName: minecraft-pvc
