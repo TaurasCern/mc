@@ -67,7 +67,7 @@ spec:
     spec:
       containers:
       - name: minecraft-server
-        image: 192.168.1.142:5000/mc-server:latest
+        image: taurascern/mc-server:latest
         ports:
         - containerPort: 27015
         volumeMounts:
